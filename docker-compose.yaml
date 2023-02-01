@@ -1,0 +1,19 @@
+# version: '3'
+# services:
+#   client_async:
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     ports:
+#       - "8080:8080"
+#     volumes:
+#       - ./:/app
+
+version: '3'
+services:
+  client_async:
+    image: adityajnu14/async_client_arch32
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/app
