@@ -18,6 +18,7 @@ print("Connecting broker is ", borker_address, borker_port)
 keep_alive = 8000
 topic_train = "train"
 topic_aggregate = "aggregate"
+topic_initilize = "initlize"
 
 #This function is used fro dataset generation
 def InitilizeClients():
@@ -112,7 +113,8 @@ def train(payload):
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Connected to MQTT Broker!")
-        client.subscribe(topic_train, 0)
+        client.subscribe(topic_train, 2)
+        client.subscribe(topic_initilize, 2)
     else:
         print("Failed to connect, return code ", rc)
 
@@ -120,6 +122,8 @@ def on_message(client, userdata, msg):
         if msg.topic == topic_train:
             param = train(msg.payload)
             client.publish(topic_aggregate, param)
+        else if ms.topic == topic_initilize:
+            InitilizeClients()
 
 
 
@@ -135,5 +139,5 @@ mqttc.on_subscribe = on_subscribe
 
 mqttc.username_pw_set("client","smart")
 mqttc.connect(borker_address, borker_port, keep_alive)
-InitilizeClients()
+# InitilizeClients()
 mqttc.loop_forever()
