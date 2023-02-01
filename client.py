@@ -122,7 +122,7 @@ def on_message(client, userdata, msg):
         if msg.topic == topic_train:
             param = train(msg.payload)
             client.publish(topic_aggregate, param)
-        elif ms.topic == topic_initilize:
+        elif msg.topic == topic_initilize:
             InitilizeClients()
 
 
