@@ -58,7 +58,7 @@ def train(payload):
         # model.summary()
 
         X, y = [], []
-        IF flags :
+        if flag :
             continousTrainingBatchSize = payload_dict['batch']
             print("Batch size is ", continousTrainingBatchSize)
 
