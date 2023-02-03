@@ -49,47 +49,57 @@ def train(payload):
     print("Starting training...")
     payload_dict = eval(payload)
     epochs = payload_dict['epochs']
-
-    continousTrainingBatchSize = payload_dict['batch']
-    print("Batch size is ", continousTrainingBatchSize)
-    with open("data/current_model.h5","wb") as file:
-        file.write(base64.b64decode(payload_dict['model_file']))
-    model = load_model("data/current_model.h5")
-    # model.summary()
-
-    #Reading index to simulate continous learning
-    currentIndex = 0
-    with open('data/indexFile.txt', "r+") as f:
-        fileIndex = json.load(f)
-        currentIndex = fileIndex['index']
-
-    print("Current Index is ", currentIndex)
-
-    data = pd.read_csv('data/data.csv')
-    
-    totalRowCount = data.shape[0]
-    nextIndex = currentIndex + continousTrainingBatchSize if currentIndex + continousTrainingBatchSize < totalRowCount else totalRowCount
-    X = data.iloc[currentIndex:nextIndex,1:-1].values
-    y = data.iloc[currentIndex:nextIndex,-1].values
-    y = to_categorical(y)
-
-    #print("Dimension of current data ", X.shape)
-
-    #Updating Index
-    if nextIndex == totalRowCount:
-        nextIndex = 0
-    with open('data/indexFile.txt', "w") as f: 
-        index = {'index' : nextIndex}
-        f.write(json.dumps(index))
-
-
-    #Printing aggregated global model metrics
-    score = model.evaluate(X, y, verbose=0)
-    print("Global model loss : {} Global model accuracy : {}".format(score[0], score[1]))
-    
-    saveLearntMetrice('data/metrics.txt', score)
-
+    flag = False #Flag is for stream data or noram FL
     try :
+
+        with open("data/current_model.h5","wb") as file:
+            file.write(base64.b64decode(payload_dict['model_file']))
+        model = load_model("data/current_model.h5")
+        # model.summary()
+
+        X, y = [], []
+        IF flags :
+            continousTrainingBatchSize = payload_dict['batch']
+            print("Batch size is ", continousTrainingBatchSize)
+
+            #Reading index to simulate continous learning
+            currentIndex = 0
+            with open('data/indexFile.txt', "r+") as f:
+                fileIndex = json.load(f)
+                currentIndex = fileIndex['index']
+
+            print("Current Index is ", currentIndex)
+
+            data = pd.read_csv('data/data.csv')
+            
+            totalRowCount = data.shape[0]
+            nextIndex = currentIndex + continousTrainingBatchSize if currentIndex + continousTrainingBatchSize < totalRowCount else totalRowCount
+            X = data.iloc[currentIndex:nextIndex,1:-1].values
+            y = data.iloc[currentIndex:nextIndex,-1].values
+            y = to_categorical(y)
+
+            #print("Dimension of current data ", X.shape)
+
+            #Updating Index
+            if nextIndex == totalRowCount:
+                nextIndex = 0
+            with open('data/indexFile.txt', "w") as f: 
+                index = {'index' : nextIndex}
+                f.write(json.dumps(index))
+        else :
+            data = pd.read_csv('data/data.csv')
+            X = data.iloc[:,1:-1].values
+            y = data.iloc[:,-1].values
+            y = to_categorical(y)
+
+        print("Shape of the data is ", X.shape, y.shape)
+
+        #Printing aggregated global model metrics
+        score = model.evaluate(X, y, verbose=0)
+        print("Global model loss : {} Global model accuracy : {}".format(score[0], score[1]))
+        
+        saveLearntMetrice('data/metrics.txt', score)
+
         model.fit(X, y, batch_size=32, epochs=epochs, shuffle=True, verbose=0)
     except Exception as e:
         print(e)
@@ -113,6 +123,7 @@ def train(payload):
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("Connected to MQTT Broker!")
+        client.publish("connected", "I am connected", 2)
         client.subscribe(topic_train, 2)
         client.subscribe(topic_initilize, 2)
     else:
@@ -129,7 +140,6 @@ def on_message(client, userdata, msg):
 
 def on_subscribe(client, userdata, mid, granted_qos):
     print("Subscriptioin done")
-    client.publish("connected", "I am connected", 2)
 
 mqttc = mqtt.Client()  
 mqttc.will_set("disconnected", "LOST_CONNECTION", 0, False)
